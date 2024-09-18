@@ -1,0 +1,95 @@
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Scanner;
+
+public class ShamirSecretSharing {
+
+    public static int decodeValue(String base, String value) {
+        int baseValue = Integer.parseInt(base);
+        return Integer.parseInt(value, baseValue);
+    }
+
+    public static double lagrangeInterpolation(Map<Integer, Integer> points, int k) {
+        double c = 0.0;
+        for (Map.Entry<Integer, Integer> entry1 : points.entrySet()) {
+            int x_i = entry1.getKey();
+            int y_i = entry1.getValue();
+            
+            double term = y_i;
+            for (Map.Entry<Integer, Integer> entry2 : points.entrySet()) {
+                int x_j = entry2.getKey();
+                if (x_i != x_j) {
+                    term *= (0.0 - x_j) / (x_i - x_j);
+                }
+            }
+            c += term;
+        }
+        return c;
+    }
+public static Map<String, Map<String, String>> parseJson(String jsonString) {
+        Map<String, Map<String, String>> parsedData = new HashMap<>();
+        jsonString = jsonString.replaceAll("[{}]", "").trim();
+        String[] pairs = jsonString.split(",");
+
+        String currentKey = null;
+        for (String pair : pairs) {
+            pair = pair.trim();
+            if (pair.contains(":")) {
+                String[] keyValue = pair.split(":");
+                String key = keyValue[0].replace("\"", "").trim();
+                String value = keyValue[1].replace("\"", "").trim();
+        
+                if (key.equals("base") || key.equals("value")) {
+                    Map<String, String> map = parsedData.getOrDefault(currentKey, new HashMap<>());
+                    map.put(key, value);
+                    parsedData.put(currentKey, map);
+                } else {
+                  currentKey = key;
+                }
+            }
+        }
+
+        return parsedData;
+    }
+
+    public static void main(String[] args) {
+    
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Please provide a JSON string as input:");
+
+        String jsonString = scanner.nextLine();
+
+        Map<String, Map<String, String>> jsonObject = parseJson(jsonString);
+        Map<String, String> keys = jsonObject.get("keys");
+        if (keys == null) {
+            System.out.println("Error: 'keys' not found in the input.");
+            return;
+        }
+        int n = Integer.parseInt(keys.get("n"));
+        int k = Integer.parseInt(keys.get("k"));
+        Map<Integer, Integer> points = new HashMap<>();
+        for (String key : jsonObject.keySet()) {
+            if (key.equals("keys")) continue;
+
+            Map<String, String> point = jsonObject.get(key);
+            if (point == null) continue;
+
+            int x = Integer.parseInt(key);
+            String base = point.get("base");
+            String value = point.get("value");
+
+        
+            int y = decodeValue(base, value);
+
+        points.put(x, y);
+        }
+
+        if (points.size() < k) {
+            System.out.println("Error: Not enough points to solve for the coefficients.");
+            return;
+        }
+
+        double c = lagrangeInterpolation(points, k);
+        System.out.printf("The constant term 'c' is: %.2f\n", c);
+    }
+}
